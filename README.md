@@ -17,11 +17,20 @@ Upload the data to an S3 bucket through the AWS Gateway so that SageMaker has ac
 ## Hyperparameter Tuning
 What kind of model did you choose for this experiment and why? Give an overview of the types of parameters and their ranges used for the hyperparameter search
 
-Remember that your README should:
+The model is built with pretrained resnet34.
+Hyperparameter Ranges:
+    "learning_rate": ContinuousParameter(0.001, 0.1),
+    "batch_size": CategoricalParameter([32, 64, 128, 256, 512]),
+    "epochs": IntegerParameter(2, 4)
+    
 - Include a screenshot of completed training jobs
+![training_job](Screenshots/training_job.png)
 - Logs metrics during the training process
+![training_metrics](Screenshots/training_metrics.png)
 - Tune at least two hyperparameters
+![hpo_jobs](Screenshots/hpo_jobs.png)
 - Retrieve the best best hyperparameters from all your training jobs
+![hpo_best_model](Screenshots/hpo_best_model.png)
 
 ## Debugging and Profiling
 **TODO**: Give an overview of how you performed model debugging and profiling in Sagemaker

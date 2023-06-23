@@ -7,17 +7,8 @@ import torch.optim as optim
 import torchvision
 import torchvision.models as models
 import torchvision.transforms as transforms
-try:
-    from smdebug import modes
-    from smdebug.profiler.utils import str2bool
-    from smdebug.pytorch import get_hook
-except:
-    pass
-
 from PIL import ImageFile
 ImageFile.LOAD_TRUNCATED_IMAGES = True
-    
-import argparse
 
 def test(model, test_loader, loss_criterion):
     model.eval()
@@ -94,6 +85,29 @@ def save_model(model, model_dir):
     
     torch.save(model.cpu().state_dict(), os.path.join(args.model_dir, "model.pth"))
 
+def model_fn(model_dir):
+    model = net()
+    with open(os.path.join(model_dir, "model.pth"), "rb") as f:
+        model.load_state_dict(torch.load(f))
+    # model.to(device).eval()
+    return model
+
+def input_fn(request_body, request_content_type):
+    assert request_content_type=='application/json'
+    data = json.loads(request_body)['inputs']
+    data = torch.tensor(data, dtype=torch.float32)
+    return data
+
+def predict_fn(input_object, model):
+    with torch.no_grad():
+        prediction = model(input_object)
+    return prediction
+
+def output_fn(predictions, content_type):
+    assert content_type == 'application/json'
+    res = predictions.cpu().numpy().tolist()
+    return json.dumps(res)
+    
 def main():
     hook = get_hook(create_if_not_exists=True)
     
