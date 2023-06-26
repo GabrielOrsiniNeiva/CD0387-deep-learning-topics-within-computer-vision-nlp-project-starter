@@ -7,12 +7,9 @@ import torch.optim as optim
 import torchvision
 import torchvision.models as models
 import torchvision.transforms as transforms
-try:
-    from smdebug import modes
-    from smdebug.profiler.utils import str2bool
-    from smdebug.pytorch import get_hook
-except:
-    pass
+from smdebug import modes
+from smdebug.profiler.utils import str2bool
+from smdebug.pytorch import get_hook
 
 from PIL import ImageFile
 ImageFile.LOAD_TRUNCATED_IMAGES = True
@@ -91,8 +88,6 @@ def create_data_loaders(data, batch_size):
 def save_model(model, model_dir):
     path = os.path.join(model_dir, "model.pth")
     torch.save(model.cpu().state_dict(), path)
-    
-    torch.save(model.cpu().state_dict(), os.path.join(args.model_dir, "model.pth"))
 
 def main():
     hook = get_hook(create_if_not_exists=True)
@@ -138,10 +133,6 @@ if __name__ == '__main__':
     parser.add_argument('--learning_rate', type=float, default=0.001)
 
     parser.add_argument('--batch_size', type=int, default=64)
-
-#     parser.add_argument('--data_path', type=str, default='./dogImages')
-    
-#     parser.add_argument('--model_path', type=str, default='./model')
 
     # Container environment
     parser.add_argument("--hosts", type=list, default=json.loads(os.environ["SM_HOSTS"]))

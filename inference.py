@@ -82,8 +82,6 @@ def create_data_loaders(data, batch_size):
 def save_model(model, model_dir):
     path = os.path.join(model_dir, "model.pth")
     torch.save(model.cpu().state_dict(), path)
-    
-    torch.save(model.cpu().state_dict(), os.path.join(args.model_dir, "model.pth"))
 
 def model_fn(model_dir):
     model = net()
@@ -152,10 +150,6 @@ if __name__ == '__main__':
     parser.add_argument('--learning_rate', type=float, default=0.001)
 
     parser.add_argument('--batch_size', type=int, default=64)
-
-#     parser.add_argument('--data_path', type=str, default='./dogImages')
-    
-#     parser.add_argument('--model_path', type=str, default='./model')
 
     # Container environment
     parser.add_argument("--hosts", type=list, default=json.loads(os.environ["SM_HOSTS"]))
