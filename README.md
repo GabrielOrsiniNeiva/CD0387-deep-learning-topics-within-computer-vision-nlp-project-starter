@@ -33,18 +33,38 @@ Hyperparameter Ranges:
 ![hpo_best_model](Screenshots/hpo_best_model.png)
 
 ## Debugging and Profiling
-**TODO**: Give an overview of how you performed model debugging and profiling in Sagemaker
+Based on this [link](https://github.com/aws/amazon-sagemaker-examples/blob/main/sagemaker-debugger/pytorch_model_debugging/pytorch_script_change_smdebug.ipynb) I plotted the CrossEntropyLoss in different steps of training and testing,
 
 ### Results
-**TODO**: What are the results/insights did you get by profiling/debugging your model?
+The model gets better performance each epoch interaction, but according to the profiling, I could didn't choose the best hardware for training, my GPU for example is underutilized, meaning I could increase the batch size and probably also increase performance, or I could have gotten a lower spec hardware to save up money.
 
-**TODO** Remember to provide the profiler html/pdf file in your submission.
+Profiler availber at [ProfilerReport/profiler](ProfilerReport/profiler-output)
 
 
 ## Model Deployment
-**TODO**: Give an overview of the deployed model and instructions on how to query the endpoint with a sample input.
+The model was deployed in a "ml.c4.xlarge" instance, and accepts JSON as input. The JSON should contain a image already transformed by torchvision.transforms method.
+```python
+import torchvision
+import torchvision.transforms as transforms
+from PIL import Image
 
-**TODO** Remember to provide a screenshot of the deployed active endpoint in Sagemaker.
+img_path = "dogImages/test/056.Dachshund/Dachshund_04003.jpg"
 
-## Standout Suggestions
-**TODO (Optional):** This is where you can provide information about any standout suggestions that you have attempted.
+image = Image.open(img_path)
+
+testing_transform = transforms.Compose([
+    transforms.RandomHorizontalFlip(p=0.5),
+    transforms.Resize(224),
+    transforms.ToTensor(),
+    transforms.RandomResizedCrop(224),
+    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+])
+
+img_tensor = testing_transform(image)
+img_tensor = img_tensor.unsqueeze(0)
+img_tensor_pred = np.array(img_tensor)
+
+response = predictor.predict({"inputs": img_tensor_pred})
+```
+Active Endpoint
+![Active Endpoint](Screenshots/endpoint.png)
