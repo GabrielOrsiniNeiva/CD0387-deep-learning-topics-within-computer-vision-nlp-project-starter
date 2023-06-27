@@ -1,5 +1,6 @@
 import os
 import json
+import logging
 import numpy as np
 import torch
 import torch.nn as nn
@@ -7,6 +8,7 @@ import torch.optim as optim
 import torchvision
 import torchvision.models as models
 import torchvision.transforms as transforms
+import smdebug.pytorch as smd
 from smdebug import modes
 from smdebug.profiler.utils import str2bool
 from smdebug.pytorch import get_hook
@@ -16,8 +18,9 @@ ImageFile.LOAD_TRUNCATED_IMAGES = True
     
 import argparse
 
-def test(model, test_loader, loss_criterion):
+def test(model, test_loader, loss_criterion, hook):
     model.eval()
+    hook.set_mode(smd.modes.EVAL)
     running_loss=0
     running_corrects=0
     
@@ -32,10 +35,12 @@ def test(model, test_loader, loss_criterion):
 
     total_loss = running_loss / len(test_loader.dataset)
     total_acc = running_corrects/ len(test_loader.dataset)
-    print(f"Testing Accuracy: {100*total_acc}, Testing Loss: {total_loss}")
 
-def train(model, train_loader, loss_criterion, optimizer):
+    return total_acc, total_loss
+
+def train(model, train_loader, loss_criterion, optimizer, hook):
     model.train()
+    hook.set_mode(smd.modes.TRAIN)
     running_loss = 0
     for batch_idx, (data, target) in enumerate(train_loader):
         data, target = data, target
@@ -90,8 +95,6 @@ def save_model(model, model_dir):
     torch.save(model.cpu().state_dict(), path)
 
 def main():
-    hook = get_hook(create_if_not_exists=True)
-    
     # Define Device
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     
@@ -102,24 +105,21 @@ def main():
     loss_criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.fc.parameters(), lr=args.learning_rate)
 
+    # Initialize hook for debbuging
+    hook = smd.Hook.create_from_json_file()
+    hook.register_hook(model)
+    hook.register_loss(loss_criterion)
+    
     # Catching data from S3
     train_loader, test_loader = create_data_loaders(args.data_path, args.batch_size)
 
     # Train the model
-    print("START TRAINING")
-    if hook:
-        hook.register_loss(loss_criterion)
+    
     for epoch in range(args.epochs):
-        if hook:
-            hook.set_mode(modes.TRAIN)
-        model, loss = train(model, train_loader, loss_criterion, optimizer)
-        print('Train Epoch: {}\tLoss: {:.4f}'.format(epoch, loss))
-
-    # Test the model to see its accuracy
-    print("START VALIDATING")
-    if hook:
-        hook.set_mode(modes.EVAL)
-    test(model, test_loader, loss_criterion)
+        model, train_loss = train(model, train_loader, loss_criterion, optimizer, hook)
+        test_acc, test_loss = test(model, test_loader, loss_criterion, hook)
+        
+        print('Train Epoch: {}\tTrain Loss: {:.4f}\Test Loss: {:.4f}'.format(epoch, train_loss, test_loss))
 
     # Save the trained model
     save_model(model, args.model_path)
